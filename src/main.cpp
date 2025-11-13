@@ -110,7 +110,7 @@ void bmeInit()
       Serial.println("VAROVANI: Senzor BME280 necte validni hodnoty!");
 
     delay(1000);
-  } while (temp_hum == 0 && temp_pres == 0 && temp_temp != 0 && temp_alti == 0);
+  } while (temp_hum == 0 && temp_pres == 0 && temp_temp == 0 && temp_alti == 0);
   
   Serial.println("Senzor BME280 uspesne inicializovan \n");
 }
