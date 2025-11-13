@@ -7,7 +7,6 @@
 ******************************************************/
 
 //------------------ Import knihoven ------------------
-#include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
@@ -18,17 +17,23 @@
 //------------------ Uzivatelska makra ------------------
 
 // I2C adresy
-#define BME_ADDRESS BME280_ADDRESS
-#define MPU_ADRESS MPU6050_I2CADDR_DEFAULT      
-#define HMC_ADDRESS HMC5883_ADDRESS_MAG
+#define BME_ADDRESS 0x76
+#define MPU_ADRESS 0x69    
+#define HMC_ADDRESS 0x1E
 
 // Konfigurace MPU
 #define MPU_ACC_RANGE MPU6050_RANGE_2_G
 #define MPU_GYRO_RANGE MPU6050_RANGE_250_DEG
 #define MPU_FILTER_BANDWIDTH MPU6050_BAND_21_HZ
 
+// Frekvence mereni [Hz]
+#define FREQUENCY 50
+
 // Perioda mereni [ms]
-#define PERIOD 1000
+#define PERIOD (1/FREQUENCY)*1000.F
+
+// Define baudrate
+#define BAUDRATE 250000
 
 // Konstanty pro vypocet
 #define MAGNETIC_DECLINATION_BRNO 0.095 // Radiany
@@ -41,6 +46,8 @@ Adafruit_BME280 bme;
 Adafruit_MPU6050 mpu;
 Adafruit_HMC5883_Unified hmc;
 
+// Casovac
+long cycle_time = 0;
 
 //------------------ Uzivatelske datove typy ------------------
 struct TBmeData
@@ -76,6 +83,12 @@ struct TMpuData
   // Calibration temperature
   float temp;
 };
+
+
+// Inicializace instanci datovych struktur pro senzory
+struct THmcData hmc_data;
+struct TMpuData mpu_data;
+struct TBmeData bme_data;
 
 //------------------ Uzivatelske funkce ------------------
 
@@ -194,29 +207,22 @@ struct TBmeData getBmeData(bool print_status)
 
   if (print_status)
   {
-    Serial.print("BME280 Teplota: ");
+    //Serial.print("BME280 Teplota: ");
     Serial.print(temp_bme.temperature);
-    Serial.print("*C");
+    Serial.print(";");
 
-    Serial.print("\n");
-
-    Serial.print("BME280 Tlak: ");
+    //Serial.print("*C \nBME280 Tlak: ");
     Serial.print(temp_bme.pressure/100.F);
-    Serial.print("hPa");
+    Serial.print(";");
 
-    Serial.print("\n");
-
-    Serial.print("BME280 Vlhkost: ");
+    //Serial.print("hPa\nBME280 Vlhkost: ");
     Serial.print(temp_bme.humidity);
-    Serial.print("%");
-
-    Serial.print("\n");
-
-    Serial.print("BME280 Nadmorska vyska: ");
+    Serial.print(";");
+ 
+    //Serial.print("%\nBME280 Nadmorska vyska: ");
     Serial.print(temp_bme.altitude);
-    Serial.print("m");
-
-    Serial.print("\n");
+    Serial.print(";");
+    //Serial.print("m\n\n");
   }
 
   return temp_bme;
@@ -248,29 +254,21 @@ struct THmcData getHmcData(bool print_status)
 
   if(print_status)
   {
-    Serial.print("HMC5883 X: ");
+    //Serial.print("HMC5883 X: ");
     Serial.print(temp_hmc.x );
-    Serial.print("uT");
+    Serial.print(";");
 
-    Serial.print(", ");
-
-    Serial.print("HMC5883 Y: ");
+    //Serial.print("uT, Y: ");
     Serial.print(temp_hmc.y);
-    Serial.print("uT");
+    Serial.print(";");
 
-    Serial.print(", ");
-
-    Serial.print("HMC5883 Z: ");
+    //Serial.print("uT, Z: ");
     Serial.print(temp_hmc.z);
-    Serial.print("uT \n");
-
-    Serial.print("\n");
-
-    Serial.print("HMC5883 Natoceni od severu: ");
+    Serial.print(";");
+    //Serial.print("uT \n HMC5883 Natoceni od severu: ");
     Serial.print(temp_hmc.headingDegrees);
-    Serial.print("*");
-
-    Serial.print("\n");
+    Serial.print(";");
+    //Serial.print("*\n\n");
   }
 
   return temp_hmc;
@@ -295,47 +293,36 @@ struct TMpuData getMpuData(bool print_status)
 
   if(print_status)
   {
-    Serial.print("MPU6050 Zrychleni X: ");
+    //Serial.print("MPU6050 Zrychleni X: ");
     Serial.print(temp_mpu.a_x);
-    Serial.print("m/s^2");
+    Serial.print(";");
+    
 
-    Serial.print(", ");
-
-    Serial.print("MPU6050 zrychleni Y: ");
+    //Serial.print("m/s^2, zrychleni Y: ");
     Serial.print(temp_mpu.a_y);
-    Serial.print("m/s^2");
+    Serial.print(";");
 
-    Serial.print(", ");
-
-    Serial.print("MPU6050 zrychleni Z: ");
+    //Serial.print("m/s^2, zrychleni Z: ");
     Serial.print(temp_mpu.a_z);
-    Serial.print("m/s^2");
+    Serial.print(";");
 
-    Serial.print("\n");
-
-    Serial.print("MPU6050 gyroskop X: ");
+    //Serial.print("m/s^2 \n MPU6050 gyroskop X: ");
     Serial.print(temp_mpu.gyro_x );
-    Serial.print("rad/s");
+    Serial.print(";");
 
-    Serial.print(", ");
-
-    Serial.print("MPU6050 gyroskop Y: ");
+    //Serial.print("rad/s,  gyroskop Y: ");
     Serial.print(temp_mpu.gyro_y);
-    Serial.print("rad/s");
+    Serial.print(";");
 
-    Serial.print(", ");
-
-    Serial.print("MPU6050 gyroskop Z: ");
+    //Serial.print("rad/s, gyroskop Z: ");
     Serial.print(temp_mpu.gyro_z);
-    Serial.print("rad/s");
+    Serial.print(";");
 
-    Serial.print("\n");
-
-    Serial.print("MPU6050 Teplota: ");
+    //Serial.print("rad/s \n MPU6050 Teplota: ");
     Serial.print(temp_mpu.temp);
-    Serial.print("*C");
+    Serial.print(";");
+    //Serial.print("*C \n\n");
 
-    Serial.print("\n");
   }
 
   return temp_mpu;
@@ -346,7 +333,7 @@ struct TMpuData getMpuData(bool print_status)
 void setup()
 {
   // Inicializace serialu
-  Serial.begin(115200);
+  Serial.begin(BAUDRATE);
 
   // Kontroler ceka, dokud se serial nerozbehne
   while(!Serial)
@@ -359,26 +346,34 @@ void setup()
 
   // Cteni casu behu programu
   long cycle_time = millis();
+
+
 }
 
 //------------------ Main loop - hlavni smycka programu ------------------
-void main()
+void loop()
 {
-  // Inicializace instanci datovych struktur pro senzory
-  struct THmcData hmc_data;
-  struct TMpuData mpu_data;
-  struct TBmeData bme_data;
 
-  // Cteni ze senzoru s periodou PERIOD
-  if(millis() >= cycle_time + PERIOD)
-  {
-    // Cteni casu behu programu
-    long cycle_time = millis();
 
-    hmc_data = getHmcData(true);
-    mpu_data = getMpuData(true);
-    bme_data = getBmeData(true);
-  }
+  float period = millis()-cycle_time;
+  float frequency = 1000 / period; 
+
+  //tisk periody
+  Serial.print("Perioda cteni: ");
+  Serial.print(period);
+  Serial.print("ms \n");
+
+  //tisk frekvence
+  Serial.print("Frekvence cteni: ");
+  Serial.print(frequency);
+  Serial.print("Hz \n");
+
+  // Cteni casu behu programu
+  cycle_time = millis();
+
+  hmc_data = getHmcData(true);
+  mpu_data = getMpuData(true);
+  bme_data = getBmeData(true);
 
   //delay(PERIOD);  // Pokud nechceme zatezovat procesor mezi merenimi
 
