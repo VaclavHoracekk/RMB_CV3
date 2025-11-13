@@ -110,7 +110,7 @@ void bmeInit()
       Serial.println("VAROVANI: Senzor BME280 necte validni hodnoty!");
 
     delay(1000);
-  } while (temp_hum != 0 && temp_pres != 0 && temp_temp != 0 && temp_alti != 0);
+  } while (temp_hum == 0 && temp_pres == 0 && temp_temp != 0 && temp_alti == 0);
   
   Serial.println("Senzor BME280 uspesne inicializovan \n");
 }
@@ -139,7 +139,7 @@ void hmcInit()
       Serial.println("VAROVANI: Senzor HMC5883 necte validni hodnoty!");
 
     delay(1000);
-  } while (event.magnetic.x != 0 && event.magnetic.y != 0 && event.magnetic.y != 0);
+  } while (event.magnetic.x == 0 && event.magnetic.y == 0 && event.magnetic.y == 0);
   
   Serial.println("Senzor HMC5883 uspesne inicializovan \n");
 }
@@ -178,7 +178,7 @@ void mpuInit()
       Serial.println("VAROVANI: Senzor MPU6050 necte validni hodnoty!");
 
     delay(1000);
-  } while (check_sum != 0);
+  } while (check_sum == 0);
   
   Serial.println("Senzor MPU6050 uspesne inicializovan \n");
 }
@@ -346,7 +346,7 @@ struct TMpuData getMpuData(bool print_status)
 void setup()
 {
   // Inicializace serialu
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Kontroler ceka, dokud se serial nerozbehne
   while(!Serial)
@@ -372,12 +372,12 @@ void main()
   // Cteni ze senzoru s periodou PERIOD
   if(millis() >= cycle_time + PERIOD)
   {
+    // Cteni casu behu programu
+    long cycle_time = millis();
+
     hmc_data = getHmcData(true);
     mpu_data = getMpuData(true);
     bme_data = getBmeData(true);
-
-    // Cteni casu behu programu
-    long cycle_time = millis();
   }
 
   //delay(PERIOD);  // Pokud nechceme zatezovat procesor mezi merenimi
