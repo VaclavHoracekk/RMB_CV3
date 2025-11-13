@@ -356,6 +356,9 @@ void setup()
   hmcInit();
   mpuInit();
   bmeInit();  
+
+  // Cteni casu behu programu
+  long cycle_time = millis();
 }
 
 //------------------ Main loop - hlavni smycka programu ------------------
@@ -366,15 +369,15 @@ void main()
   struct TMpuData mpu_data;
   struct TBmeData bme_data;
 
-  // Cteni casu behu programu
-  long cycle_time = millis();
-
   // Cteni ze senzoru s periodou PERIOD
   if(millis() >= cycle_time + PERIOD)
   {
     hmc_data = getHmcData(true);
     mpu_data = getMpuData(true);
     bme_data = getBmeData(true);
+
+    // Cteni casu behu programu
+    long cycle_time = millis();
   }
 
   //delay(PERIOD);  // Pokud nechceme zatezovat procesor mezi merenimi
